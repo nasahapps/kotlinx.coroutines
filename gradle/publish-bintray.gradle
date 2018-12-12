@@ -8,6 +8,7 @@ apply plugin: 'maven'
 apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.jfrog.artifactory'
+apply plugin: "com.github.johnrengelman.shadow"
 
 apply from: project.rootProject.file('gradle/maven-central.gradle')
 
@@ -32,19 +33,30 @@ task sourcesJar(type: Jar) {
     }
 }
 
+
 publishing {
     repositories {
         maven { url = 'https://kotlin.bintray.com/kotlinx' }
     }
 
     publications {
-        maven(MavenPublication) {
-            if (!isNative) {
-                from components.java
+        // TODO I ain't even mad
+        if (project.name == "kotlinx-coroutines-debug") {
+            shadow(MavenPublication) { publication ->
+                project.shadow.component(publication)
                 artifact javadocJar
                 artifact sourcesJar
+                pom.withXml(configureMavenCentralMetadata)
             }
-            pom.withXml(configureMavenCentralMetadata)
+        } else {
+            maven(MavenPublication) {
+                if (!isNative) {
+                    from components.java
+                    artifact javadocJar
+                    artifact sourcesJar
+                }
+                pom.withXml(configureMavenCentralMetadata)
+            }
         }
     }
 }
@@ -59,13 +71,22 @@ artifactory {
         }
 
         publications {
-            maven(MavenPublication) {
-                if (!isNative) {
-                    from components.java
+            if (project.name == "kotlinx-coroutines-debug") {
+                shadow(MavenPublication) { publication ->
+                    project.shadow.component(publication)
                     artifact javadocJar
                     artifact sourcesJar
+                    pom.withXml(configureMavenCentralMetadata)
                 }
-                pom.withXml(configureMavenCentralMetadata)
+            } else {
+                maven(MavenPublication) {
+                    if (!isNative) {
+                        from components.java
+                        artifact javadocJar
+                        artifact sourcesJar
+                    }
+                    pom.withXml(configureMavenCentralMetadata)
+                }
             }
         }
 
